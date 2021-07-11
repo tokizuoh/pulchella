@@ -10,6 +10,17 @@ import (
 	"github.com/sclevine/agouti"
 )
 
+func removeEmpty(arr []string) []string {
+	var newArr []string
+	for _, a := range arr {
+		if len(a) == 0 {
+			continue
+		}
+		newArr = append(newArr, a)
+	}
+	return newArr
+}
+
 func getPage(url string) {
 	driver := agouti.ChromeDriver(agouti.ChromeOptions("args", []string{
 		"--headless",
@@ -43,9 +54,34 @@ func getPage(url string) {
 		log.Fatal(err)
 	}
 
-	doc.Find("#news-detail > section > div.text > div > div").Each(func(i int, s *goquery.Selection) {
-		log.Println(i, s.Text())
+	// extract title
+	var title string
+	doc.Find("#news-detail > section > h3").Each(func(i int, s *goquery.Selection) {
+		title = s.Text()
 	})
+
+	// extract holding period
+	var holdingPeriod string
+	doc.Find("#news-detail > section > div.text > div > div").Each(func(i int, s *goquery.Selection) {
+
+		txts := strings.Split(s.Text(), "\n")
+		txts = removeEmpty(txts)
+
+		f := false
+		for _, t := range txts {
+			if f {
+				holdingPeriod = t
+				break
+			}
+
+			if t == "開催期間" {
+				f = true
+			}
+		}
+	})
+
+	log.Println("TITLE: ", title)
+	log.Println("PERIOD: ", holdingPeriod)
 }
 
 func main() {
