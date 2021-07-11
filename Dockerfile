@@ -3,4 +3,4 @@ WORKDIR /go/src
 
 COPY ./ ./
 # RUN go mod download
-RUN apk add --no-cache gcc musl-dev
+RUN apk add --no-cache gcc musl-dev chromium chromium-chromedriver
