@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -89,7 +90,10 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	id := "599"
-	url := os.Getenv("TARGET_URL") + id
-	getPage(url)
+	for i := 590; i < 600; i++ {
+		id := strconv.Itoa(i)
+		url := os.Getenv("TARGET_URL") + id
+		getPage(url)
+	}
+
 }
