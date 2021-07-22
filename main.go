@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -255,7 +256,7 @@ func getEvent(url string) (event, bool) {
 	return e, true
 }
 
-func main() {
+func fetchEvent() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -277,6 +278,17 @@ func main() {
 		log.Println("start: ", e.period.start.time)
 		log.Println("e n d: ", e.period.end.time)
 		log.Println("--------------------------")
+	}
+}
+
+func main() {
+	flag.Parse()
+
+	f := flag.Arg(0)
+	if f == "fetch" {
+		fetchEvent()
+	} else {
+		// NOP
 	}
 
 }
