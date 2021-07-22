@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -31,6 +32,11 @@ type date struct {
 type period struct {
 	start date
 	end   date
+}
+
+type event struct {
+	title  string
+	period period
 }
 
 func convertPeriod(from string) (period, bool) {
@@ -173,7 +179,7 @@ func convertPeriod(from string) (period, bool) {
 	return period{start: start, end: end}, true
 }
 
-func getPage(url string) {
+func getEvent(url string) (event, bool) {
 	driver := agouti.ChromeDriver(agouti.ChromeOptions("args", []string{
 		"--headless",
 		"--window-size=1,1",
@@ -233,20 +239,20 @@ func getPage(url string) {
 	})
 
 	if len(holdingPeriod) == 0 {
-		return
+		return event{}, false
 	}
 
-	period, ok := convertPeriod(holdingPeriod)
+	pd, ok := convertPeriod(holdingPeriod)
 	if ok != true {
 		log.Println("TITLE:", title)
-		log.Fatal("FAILURE CONVERT STRING TO DATE")
+		return event{}, false
 	}
 
-	log.Println("/#################")
-	log.Println("TITLE:", title)
-	log.Println("START:", period.start.time)
-	log.Println("E N D:", period.end.time)
-	log.Println("##################")
+	e := event{
+		title:  title,
+		period: pd,
+	}
+	return e, true
 }
 
 func main() {
@@ -254,10 +260,23 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
+	targetURL := os.Getenv("TARGET_URL")
 	for i := 595; i < 606; i++ {
 		id := strconv.Itoa(i)
-		url := os.Getenv("TARGET_URL") + id
-		getPage(url)
+		url := targetURL + id
+
+		e, ok := getEvent(url)
+		if ok != true {
+			errMsg := fmt.Sprintf("id: %s", id)
+			log.Println(errMsg)
+			continue
+		}
+
+		log.Println("/-------------------------")
+		log.Println("TITLE: ", e.title)
+		log.Println("start: ", e.period.start.time)
+		log.Println("e n d: ", e.period.end.time)
+		log.Println("--------------------------")
 	}
 
 }
