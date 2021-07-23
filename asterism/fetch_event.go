@@ -260,6 +260,7 @@ func FetchEvent() error {
 	}
 
 	targetURL := os.Getenv("TARGET_URL_1")
+	// TODO: 初期値を最新のIDを取得（get_news_id.go）して設定し、終端を過去に取得した最新のIDにする
 	for i := 595; i < 606; i++ {
 		id := strconv.Itoa(i)
 		url := targetURL + id
@@ -274,6 +275,9 @@ func FetchEvent() error {
 			continue
 		}
 
+		// TODO: DBに保存する
+		// title(string), start(date), end(date), type(string)
+		//   type: event or capsule
 		log.Println("/-------------------------")
 		log.Println("TITLE: ", e.title)
 		log.Println("start: ", e.period.start)
