@@ -1,12 +1,6 @@
 # pulchella
-
-Extract data you want from HTML.  
-
-## .env
   
-```bash
-TARGET_URL={}
-```
+Extract data you want from HTML.  
   
 ## Docker
   
