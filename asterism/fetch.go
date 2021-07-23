@@ -25,14 +25,9 @@ func removeEmpty(arr []string) []string {
 	return newArr
 }
 
-type date struct {
-	time      time.Time
-	isUpdated bool
-}
-
 type period struct {
-	start date
-	end   date
+	start time.Time
+	end   time.Time
 }
 
 type event struct {
@@ -40,147 +35,151 @@ type event struct {
 	period period
 }
 
-func convertPeriod(from string) (period, bool) {
-	words := strings.Fields(from)
+// [2021年6月11日～2021年6月30日, 11:59まで]
+func getPeriod2(words []string) (period, error) {
+	var start time.Time
+	var end time.Time
 
-	var start date
-	var end date
-	for i, w := range words {
-		_, err := strconv.Atoi(w[:1])
-		if err != nil {
-			continue
-		}
-
-		if start.isUpdated == false {
-			// スタート生成
-			if len(words) == 3 {
-				// 2021年6月21日～2021年6月30日 11:59 まで
-
-				// [2021年6月21日, 2021年6月30日]
-				d := strings.Split(words[0], "～")
-				l := "2006年1月2日"
-				t, err := time.Parse(l, d[0])
-				if err != nil {
-					return period{}, false
-				}
-				start.time = t
-				start.isUpdated = true
-
-				et := d[1] + words[1] + words[2]
-				l = "2006年1月2日15:04まで"
-				t, err = time.Parse(l, et)
-				if err != nil {
-					return period{}, false
-				}
-				end.time = t
-				end.isUpdated = true
-
-			} else if len(words) == 2 {
-				// 2021年6月11日～2021年6月30日 11:59まで
-				d := strings.Split(words[0], "～")
-				l := "2006年1月2日"
-				t, err := time.Parse(l, d[0])
-				if err != nil {
-					return period{}, false
-				}
-				start.time = t
-				start.isUpdated = true
-
-				et := d[1] + words[1]
-				l = "2006年1月2日15:04まで"
-				t, err = time.Parse(l, et)
-				if err != nil {
-					return period{}, false
-				}
-				end.time = t
-				end.isUpdated = true
-
-			} else if len(words) == 5 {
-				// 2021年6月30日 ～ 2021年7月31日 14:59 まで
-				l := "2006年1月2日"
-				t, err := time.Parse(l, words[0])
-				if err != nil {
-					return period{}, false
-				}
-				start.time = t
-				start.isUpdated = true
-
-				et := words[2] + words[3]
-				l = "2006年1月2日15:04"
-				t, err = time.Parse(l, et)
-				if err != nil {
-					return period{}, false
-				}
-				end.time = t
-				end.isUpdated = true
-
-			} else {
-				// len(word) == 4 のとき
-				if strings.Contains(words[2], "年") {
-					// 2021年6月11日　～　2021年6月21日 11:59まで
-					l := "2006年1月2日"
-					t, err := time.Parse(l, w)
-					if err != nil {
-						return period{}, false
-					}
-					start.time = t
-					start.isUpdated = true
-				} else {
-					// 2021年6月30日 ～ 7月4日 23:59まで
-					l := "2006年1月2日"
-					t, err := time.Parse(l, words[0])
-					if err != nil {
-						return period{}, false
-					}
-					start.time = t
-					start.isUpdated = true
-
-					et := words[2] + words[3]
-					l = "1月2日15:04まで"
-					t, err = time.Parse(l, et)
-					if err != nil {
-						return period{}, false
-					}
-					end.time = time.Date(start.time.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
-					end.isUpdated = true
-				}
-			}
-		} else if end.isUpdated == false {
-			if i+1 < len(words) {
-				// [2021年6月30日, ～, 2021年7月10日, 14:59まで]
-				if len(words) == 4 {
-					l := "2006年1月2日15:04まで"
-					v := strings.Join(words[i:i+2], "")
-					t, err := time.Parse(l, v)
-					if err != nil {
-						return period{}, false
-					}
-					end.time = t
-					end.isUpdated = true
-				}
-			} else if i+2 < len(words) {
-				// [2021年6月30日, ～, 2021年7月10日, 14:59, まで]
-				l := "2006年1月2日15:04まで"
-				v := strings.Join(words[i:i+3], "")
-				t, err := time.Parse(l, v)
-				if err != nil {
-					return period{}, false
-				}
-				end.time = t
-				end.isUpdated = true
-			}
-		}
+	d := strings.Split(words[0], "～")
+	l := "2006年1月2日"
+	t, err := time.Parse(l, d[0])
+	if err != nil {
+		return period{}, err
 	}
+	start = t
 
-	success := start.isUpdated && end.isUpdated
-	if !success {
-		return period{}, false
+	et := d[1] + words[1]
+	l = "2006年1月2日15:04まで"
+	t, err = time.Parse(l, et)
+	if err != nil {
+		return period{}, err
 	}
+	end = t
 
-	return period{start: start, end: end}, true
+	pd := period{start: start, end: end}
+	return pd, err
 }
 
-func getEvent(url string) (event, bool) {
+// [2021年6月21日～2021年6月30日, 11:59, まで]
+func getPeriod3(words []string) (period, error) {
+	var start time.Time
+	var end time.Time
+
+	d := strings.Split(words[0], "～")
+	l := "2006年1月2日"
+	t, err := time.Parse(l, d[0])
+	if err != nil {
+		return period{}, err
+	}
+	start = t
+
+	et := d[1] + words[1] + words[2]
+	l = "2006年1月2日15:04まで"
+	t, err = time.Parse(l, et)
+	if err != nil {
+		return period{}, err
+	}
+	end = t
+
+	pd := period{start: start, end: end}
+	return pd, err
+}
+
+// [2021年6月30日, ～, 2021年7月10日, 14:59まで]
+func getPeriod4A(words []string) (period, error) {
+	var start time.Time
+	var end time.Time
+
+	l := "2006年1月2日"
+	t, err := time.Parse(l, words[0])
+	if err != nil {
+		return period{}, err
+	}
+	start = t
+
+	l = "2006年1月2日15:04まで"
+	v := strings.Join(words[2:4], "")
+	t, err = time.Parse(l, v)
+	if err != nil {
+		return period{}, err
+	}
+	end = t
+
+	pd := period{start: start, end: end}
+	return pd, err
+}
+
+// [2021年6月30日, ～, 7月4日, 23:59まで]
+func getPeriod4B(words []string) (period, error) {
+	var start time.Time
+	var end time.Time
+
+	l := "2006年1月2日"
+	t, err := time.Parse(l, words[0])
+	if err != nil {
+		return period{}, err
+	}
+	start = t
+
+	et := words[2] + words[3]
+	l = "1月2日15:04まで"
+	t, err = time.Parse(l, et)
+	if err != nil {
+		return period{}, err
+	}
+	end = time.Date(start.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
+
+	pd := period{start: start, end: end}
+	return pd, err
+}
+
+// [2021年6月30日, ～, 2021年7月31日, 14:59, まで]
+func getPeriod5(words []string) (period, error) {
+	var start time.Time
+	var end time.Time
+
+	l := "2006年1月2日"
+	t, err := time.Parse(l, words[0])
+	if err != nil {
+		return period{}, err
+	}
+	start = t
+
+	et := words[2] + words[3]
+	l = "2006年1月2日15:04"
+	t, err = time.Parse(l, et)
+	if err != nil {
+		return period{}, err
+	}
+	end = t
+
+	pd := period{start: start, end: end}
+	return pd, err
+}
+
+func convertPeriod(from string) (period, error) {
+	words := strings.Fields(from)
+	lw := len(words)
+
+	switch lw {
+	case 2:
+		return getPeriod2(words)
+	case 3:
+		return getPeriod3(words)
+	case 4:
+		if strings.Contains(words[2], "年") {
+			return getPeriod4A(words)
+		} else {
+			return getPeriod4B(words)
+		}
+	case 5:
+		return getPeriod5(words)
+	}
+
+	return period{}, fmt.Errorf("doesn't meet existing conditions")
+}
+
+func getEvent(url string) (event, bool, error) {
 	driver := agouti.ChromeDriver(agouti.ChromeOptions("args", []string{
 		"--headless",
 		"--window-size=1,1",
@@ -191,26 +190,26 @@ func getEvent(url string) (event, bool) {
 	}), agouti.Debug)
 
 	if err := driver.Start(); err != nil {
-		log.Fatal(err)
+		return event{}, false, err
 	}
 	defer driver.Stop()
 
 	page, err := driver.NewPage()
 	if err != nil {
-		log.Fatal(err)
+		return event{}, false, err
 	}
 
 	page.Navigate(url)
 
 	src, err := page.HTML()
 	if err != nil {
-		log.Fatal(err)
+		return event{}, false, err
 	}
 
 	r := strings.NewReader(src)
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
-		log.Fatal(err)
+		return event{}, false, err
 	}
 
 	// extract title
@@ -240,23 +239,22 @@ func getEvent(url string) (event, bool) {
 	})
 
 	if len(holdingPeriod) == 0 {
-		return event{}, false
+		return event{}, false, nil
 	}
 
-	pd, ok := convertPeriod(holdingPeriod)
-	if ok != true {
-		log.Println("TITLE:", title)
-		return event{}, false
+	pd, err := convertPeriod(holdingPeriod)
+	if err != nil {
+		return event{}, false, err
 	}
 
 	e := event{
 		title:  title,
 		period: pd,
 	}
-	return e, true
+	return e, true, nil
 }
 
-func fetchEvent() {
+func FetchEvent() error {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -266,19 +264,24 @@ func fetchEvent() {
 		id := strconv.Itoa(i)
 		url := targetURL + id
 
-		e, ok := getEvent(url)
+		e, ok, err := getEvent(url)
+		if err != nil {
+			log.Printf("WARNING: ID [%v] convert error", i)
+			continue
+		}
+
 		if ok != true {
-			errMsg := fmt.Sprintf("id: %s", id)
-			log.Println(errMsg)
 			continue
 		}
 
 		log.Println("/-------------------------")
 		log.Println("TITLE: ", e.title)
-		log.Println("start: ", e.period.start.time)
-		log.Println("e n d: ", e.period.end.time)
+		log.Println("start: ", e.period.start)
+		log.Println("e n d: ", e.period.end)
 		log.Println("--------------------------")
 	}
+
+	return nil
 }
 
 func GetNewestID() (string, error) {
