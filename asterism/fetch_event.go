@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +13,17 @@ import (
 	"github.com/sclevine/agouti"
 )
 
+type period struct {
+	start time.Time
+	end   time.Time
+}
+
+type event struct {
+	title  string
+	period period
+}
+
+// ["", "1", "", "a"] -> ["1", "a"]
 func removeEmpty(arr []string) []string {
 	var newArr []string
 	for _, a := range arr {
@@ -23,16 +33,6 @@ func removeEmpty(arr []string) []string {
 		newArr = append(newArr, a)
 	}
 	return newArr
-}
-
-type period struct {
-	start time.Time
-	end   time.Time
-}
-
-type event struct {
-	title  string
-	period period
 }
 
 // [2021年6月11日～2021年6月30日, 11:59まで]
@@ -282,64 +282,4 @@ func FetchEvent() error {
 	}
 
 	return nil
-}
-
-func GetNewestID() (string, error) {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	targetURL := os.Getenv("TARGET_URL_2")
-
-	driver := agouti.ChromeDriver(agouti.ChromeOptions("args", []string{
-		"--headless",
-		"--window-size=1,1",
-		"--blink-settings=imagesEnabled=false",
-		"--disable-gpu",
-		"--disable-dev-shm-usage",
-		"no-sandbox",
-	}), agouti.Debug)
-
-	if err := driver.Start(); err != nil {
-		return "", err
-	}
-	defer driver.Stop()
-
-	page, err := driver.NewPage()
-	if err != nil {
-		return "", err
-	}
-
-	page.Navigate(targetURL)
-
-	src, err := page.HTML()
-	if err != nil {
-		return "", err
-	}
-
-	r := strings.NewReader(src)
-	doc, err := goquery.NewDocumentFromReader(r)
-	if err != nil {
-		return "", err
-	}
-
-	regex := regexp.MustCompile(`article.html\?id=\d{1,}`)
-	var needURL string
-	doc.Find("a").Each(func(_ int, s *goquery.Selection) {
-		if needURL != "" {
-			return
-		}
-		url, _ := s.Attr("href")
-		ok := regex.MatchString(url)
-		if ok {
-			needURL = url
-			return
-		}
-	})
-
-	if needURL == "" {
-		return "", fmt.Errorf("Not found href.")
-	}
-
-	return needURL, nil
 }
