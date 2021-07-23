@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// TODO: テスト書き直す（mainに処理の実態がないため）
 func TestRemoveEmpty(t *testing.T) {
 	type args struct {
 		arr []string
