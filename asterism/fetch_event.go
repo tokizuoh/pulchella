@@ -19,8 +19,10 @@ type period struct {
 }
 
 type event struct {
-	title  string
-	period period
+	id        int
+	title     string
+	period    period
+	isCapsule bool
 }
 
 // ["", "1", "", "a"] -> ["1", "a"]
@@ -179,7 +181,7 @@ func convertPeriod(from string) (period, error) {
 	return period{}, fmt.Errorf("doesn't meet existing conditions")
 }
 
-func getEvent(url string) (event, bool, error) {
+func getEvent(url string, id int) (event, bool, error) {
 	driver := agouti.ChromeDriver(agouti.ChromeOptions("args", []string{
 		"--headless",
 		"--window-size=1,1",
@@ -248,8 +250,10 @@ func getEvent(url string) (event, bool, error) {
 	}
 
 	e := event{
-		title:  title,
-		period: pd,
+		id:        id,
+		title:     title,
+		period:    pd,
+		isCapsule: strings.Contains(title, "ガシャ"),
 	}
 	return e, true, nil
 }
@@ -265,7 +269,7 @@ func FetchEvent() error {
 		id := strconv.Itoa(i)
 		url := targetURL + id
 
-		e, ok, err := getEvent(url)
+		e, ok, err := getEvent(url, i)
 		if err != nil {
 			log.Printf("WARNING: ID [%v] convert error", i)
 			continue
@@ -279,7 +283,9 @@ func FetchEvent() error {
 		// title(string), start(date), end(date), type(string)
 		//   type: event or capsule
 		log.Println("/-------------------------")
+		log.Println("I   D: ", e.id)
 		log.Println("TITLE: ", e.title)
+		log.Println("CAPSU: ", e.isCapsule)
 		log.Println("start: ", e.period.start)
 		log.Println("e n d: ", e.period.end)
 		log.Println("--------------------------")
