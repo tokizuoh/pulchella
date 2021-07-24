@@ -13,16 +13,16 @@ import (
 	"github.com/sclevine/agouti"
 )
 
-type period struct {
-	start time.Time
-	end   time.Time
+type Period struct {
+	Start time.Time
+	End   time.Time
 }
 
-type event struct {
-	id        int
-	title     string
-	period    period
-	isCapsule bool
+type Event struct {
+	Id        int
+	Title     string
+	Period    Period
+	IsCapsule bool
 }
 
 // ["", "1", "", "a"] -> ["1", "a"]
@@ -38,7 +38,7 @@ func removeEmpty(arr []string) []string {
 }
 
 // [2021年6月11日～2021年6月30日, 11:59まで]
-func getPeriod2(words []string) (period, error) {
+func getPeriod2(words []string) (Period, error) {
 	var start time.Time
 	var end time.Time
 
@@ -46,7 +46,7 @@ func getPeriod2(words []string) (period, error) {
 	l := "2006年1月2日"
 	t, err := time.Parse(l, d[0])
 	if err != nil {
-		return period{}, err
+		return Period{}, err
 	}
 	start = t
 
@@ -54,16 +54,16 @@ func getPeriod2(words []string) (period, error) {
 	l = "2006年1月2日15:04まで"
 	t, err = time.Parse(l, et)
 	if err != nil {
-		return period{}, err
+		return Period{}, err
 	}
 	end = t
 
-	pd := period{start: start, end: end}
+	pd := Period{Start: start, End: end}
 	return pd, err
 }
 
 // [2021年6月21日～2021年6月30日, 11:59, まで]
-func getPeriod3(words []string) (period, error) {
+func getPeriod3(words []string) (Period, error) {
 	var start time.Time
 	var end time.Time
 
@@ -71,7 +71,7 @@ func getPeriod3(words []string) (period, error) {
 	l := "2006年1月2日"
 	t, err := time.Parse(l, d[0])
 	if err != nil {
-		return period{}, err
+		return Period{}, err
 	}
 	start = t
 
@@ -79,23 +79,23 @@ func getPeriod3(words []string) (period, error) {
 	l = "2006年1月2日15:04まで"
 	t, err = time.Parse(l, et)
 	if err != nil {
-		return period{}, err
+		return Period{}, err
 	}
 	end = t
 
-	pd := period{start: start, end: end}
+	pd := Period{Start: start, End: end}
 	return pd, err
 }
 
 // [2021年6月30日, ～, 2021年7月10日, 14:59まで]
-func getPeriod4A(words []string) (period, error) {
+func getPeriod4A(words []string) (Period, error) {
 	var start time.Time
 	var end time.Time
 
 	l := "2006年1月2日"
 	t, err := time.Parse(l, words[0])
 	if err != nil {
-		return period{}, err
+		return Period{}, err
 	}
 	start = t
 
@@ -103,23 +103,23 @@ func getPeriod4A(words []string) (period, error) {
 	v := strings.Join(words[2:4], "")
 	t, err = time.Parse(l, v)
 	if err != nil {
-		return period{}, err
+		return Period{}, err
 	}
 	end = t
 
-	pd := period{start: start, end: end}
+	pd := Period{Start: start, End: end}
 	return pd, err
 }
 
 // [2021年6月30日, ～, 7月4日, 23:59まで]
-func getPeriod4B(words []string) (period, error) {
+func getPeriod4B(words []string) (Period, error) {
 	var start time.Time
 	var end time.Time
 
 	l := "2006年1月2日"
 	t, err := time.Parse(l, words[0])
 	if err != nil {
-		return period{}, err
+		return Period{}, err
 	}
 	start = t
 
@@ -127,23 +127,23 @@ func getPeriod4B(words []string) (period, error) {
 	l = "1月2日15:04まで"
 	t, err = time.Parse(l, et)
 	if err != nil {
-		return period{}, err
+		return Period{}, err
 	}
 	end = time.Date(start.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
 
-	pd := period{start: start, end: end}
+	pd := Period{Start: start, End: end}
 	return pd, err
 }
 
 // [2021年6月30日, ～, 2021年7月31日, 14:59, まで]
-func getPeriod5(words []string) (period, error) {
+func getPeriod5(words []string) (Period, error) {
 	var start time.Time
 	var end time.Time
 
 	l := "2006年1月2日"
 	t, err := time.Parse(l, words[0])
 	if err != nil {
-		return period{}, err
+		return Period{}, err
 	}
 	start = t
 
@@ -151,15 +151,15 @@ func getPeriod5(words []string) (period, error) {
 	l = "2006年1月2日15:04"
 	t, err = time.Parse(l, et)
 	if err != nil {
-		return period{}, err
+		return Period{}, err
 	}
 	end = t
 
-	pd := period{start: start, end: end}
+	pd := Period{Start: start, End: end}
 	return pd, err
 }
 
-func convertPeriod(from string) (period, error) {
+func convertPeriod(from string) (Period, error) {
 	words := strings.Fields(from)
 	lw := len(words)
 
@@ -178,10 +178,10 @@ func convertPeriod(from string) (period, error) {
 		return getPeriod5(words)
 	}
 
-	return period{}, fmt.Errorf("doesn't meet existing conditions")
+	return Period{}, fmt.Errorf("doesn't meet existing conditions")
 }
 
-func getEvent(url string, id int) (event, bool, error) {
+func getEvent(url string, id int) (Event, bool, error) {
 	driver := agouti.ChromeDriver(agouti.ChromeOptions("args", []string{
 		"--headless",
 		"--window-size=1,1",
@@ -192,26 +192,26 @@ func getEvent(url string, id int) (event, bool, error) {
 	}), agouti.Debug)
 
 	if err := driver.Start(); err != nil {
-		return event{}, false, err
+		return Event{}, false, err
 	}
 	defer driver.Stop()
 
 	page, err := driver.NewPage()
 	if err != nil {
-		return event{}, false, err
+		return Event{}, false, err
 	}
 
 	page.Navigate(url)
 
 	src, err := page.HTML()
 	if err != nil {
-		return event{}, false, err
+		return Event{}, false, err
 	}
 
 	r := strings.NewReader(src)
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
-		return event{}, false, err
+		return Event{}, false, err
 	}
 
 	// extract title
@@ -241,29 +241,30 @@ func getEvent(url string, id int) (event, bool, error) {
 	})
 
 	if len(holdingPeriod) == 0 {
-		return event{}, false, nil
+		return Event{}, false, nil
 	}
 
 	pd, err := convertPeriod(holdingPeriod)
 	if err != nil {
-		return event{}, false, err
+		return Event{}, false, err
 	}
 
-	e := event{
-		id:        id,
-		title:     title,
-		period:    pd,
-		isCapsule: strings.Contains(title, "ガシャ"),
+	e := Event{
+		Id:        id,
+		Title:     title,
+		Period:    pd,
+		IsCapsule: strings.Contains(title, "ガシャ"),
 	}
 	return e, true, nil
 }
 
-func FetchEvent() error {
+func FetchEvents() ([]Event, error) {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
 	targetURL := os.Getenv("TARGET_URL_1")
+	var events []Event
 	// TODO: 初期値を最新のIDを取得（get_news_id.go）して設定し、終端を過去に取得した最新のIDにする
 	for i := 595; i < 606; i++ {
 		id := strconv.Itoa(i)
@@ -283,13 +284,14 @@ func FetchEvent() error {
 		// title(string), start(date), end(date), type(string)
 		//   type: event or capsule
 		log.Println("/-------------------------")
-		log.Println("I   D: ", e.id)
-		log.Println("TITLE: ", e.title)
-		log.Println("CAPSU: ", e.isCapsule)
-		log.Println("start: ", e.period.start)
-		log.Println("e n d: ", e.period.end)
+		log.Println("I   D: ", e.Id)
+		log.Println("TITLE: ", e.Title)
+		log.Println("CAPSU: ", e.IsCapsule)
+		log.Println("start: ", e.Period.Start)
+		log.Println("e n d: ", e.Period.End)
 		log.Println("--------------------------")
+		events = append(events, e)
 	}
 
-	return nil
+	return events, nil
 }
