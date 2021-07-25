@@ -154,6 +154,7 @@ func main() {
 			log.Fatal(err)
 		}
 	} else if f == "update" {
+		// アップロード済みのIDとWeb上の最新のIDを比較して、差分のイベントをDBに更新する
 		newEvents, err := getNewEvents()
 		if err != nil {
 			log.Fatal(err)
