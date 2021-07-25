@@ -4,13 +4,118 @@ import (
 	"asterism"
 	"context"
 	"flag"
-	"fmt"
 	"log"
+	"os"
 	"strconv"
 
 	firebase "firebase.google.com/go"
+	"github.com/joho/godotenv"
 	"google.golang.org/api/option"
 )
+
+type Event struct {
+	Id        int    `json:"id"`
+	Title     string `json:"title"`
+	Start     string `json:"start"`
+	End       string `json:"end"`
+	IsCapsule bool   `json:"isCapsule"`
+}
+
+func getNewEvents() ([]Event, error) {
+	if err := godotenv.Load(); err != nil {
+		return nil, err
+	}
+
+	databaseURL := os.Getenv("DATABASE_URL")
+
+	opt := option.WithCredentialsFile("key.json")
+	config := &firebase.Config{DatabaseURL: databaseURL}
+	app, err := firebase.NewApp(context.Background(), config, opt)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	client, err := app.Database(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	events, err := asterism.FetchEvents()
+	if err != nil {
+		return nil, err
+	}
+
+	// uploadedEvents
+	var rese map[string]Event
+	ref := client.NewRef("hoge")
+	if err := ref.Get(ctx, &rese); err != nil {
+		return nil, err
+	}
+
+	var newEvents []Event
+
+	for _, e := range events {
+		var isNewEvent = true
+		for _, re := range rese {
+			if e.Id == re.Id {
+				isNewEvent = false
+				break
+			}
+		}
+		if isNewEvent != true {
+			continue
+		}
+		event := Event{
+			Id:        e.Id,
+			Title:     e.Title,
+			Start:     e.Period.Start.String(),
+			End:       e.Period.Start.String(),
+			IsCapsule: e.IsCapsule,
+		}
+		newEvents = append(newEvents, event)
+	}
+
+	return newEvents, nil
+}
+
+func updateEvents(events []Event) error {
+	if err := godotenv.Load(); err != nil {
+		return err
+	}
+
+	databaseURL := os.Getenv("DATABASE_URL")
+
+	opt := option.WithCredentialsFile("key.json")
+	config := &firebase.Config{DatabaseURL: databaseURL}
+	app, err := firebase.NewApp(context.Background(), config, opt)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	client, err := app.Database(ctx)
+	if err != nil {
+		return err
+	}
+
+	ref := client.NewRef("hoge")
+	for _, e := range events {
+		id := strconv.Itoa(e.Id)
+		usersRef := ref.Child(id)
+		err = usersRef.Set(ctx, map[string]interface{}{
+			"id":        e.Id,
+			"title":     e.Title,
+			"start":     e.Start,
+			"end":       e.End,
+			"isCapsule": e.IsCapsule,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	return nil
+}
 
 func main() {
 	flag.Parse()
@@ -27,45 +132,14 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-	} else if f == "af" {
-		opt := option.WithCredentialsFile("key.json")
-		config := &firebase.Config{DatabaseURL: "https://pulchella-37dfa-default-rtdb.firebaseio.com/"}
-		app, err := firebase.NewApp(context.Background(), config, opt)
-		if err != nil {
-			fmt.Errorf("error initializing app: %v", err)
-			return
-		}
-
-		ctx := context.Background()
-		client, err := app.Database(ctx)
+	} else if f == "update" {
+		newEvents, err := getNewEvents()
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		events, err := asterism.FetchEvents()
-		if err != nil {
+		if err := updateEvents(newEvents); err != nil {
 			log.Fatal(err)
 		}
-
-		ref := client.NewRef("hoge")
-		for _, e := range events {
-
-			id := strconv.Itoa(e.Id)
-			usersRef := ref.Child(id)
-			err = usersRef.Set(ctx, map[string]interface{}{
-				"id":        e.Id,
-				"title":     e.Title,
-				"start":     e.Period.Start,
-				"end":       e.Period.End,
-				"isCapsule": e.IsCapsule,
-			})
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		log.Println("Done")
-
 	} else {
 		// NOP
 	}
