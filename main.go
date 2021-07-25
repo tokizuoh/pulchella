@@ -91,7 +91,7 @@ func getNewEvents() ([]Event, error) {
 			Id:        e.Id,
 			Title:     e.Title,
 			Start:     e.Period.Start.String(),
-			End:       e.Period.Start.String(),
+			End:       e.Period.End.String(),
 			IsCapsule: e.IsCapsule,
 		}
 		newEvents = append(newEvents, event)
