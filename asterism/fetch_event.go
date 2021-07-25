@@ -258,7 +258,7 @@ func getEvent(url string, id int) (Event, bool, error) {
 	return e, true, nil
 }
 
-func FetchEvents() ([]Event, error) {
+func FetchEvents(fromID, toID int) ([]Event, error) {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -266,7 +266,7 @@ func FetchEvents() ([]Event, error) {
 	targetURL := os.Getenv("TARGET_URL_1")
 	var events []Event
 	// TODO: 初期値を最新のIDを取得（get_news_id.go）して設定し、終端を過去に取得した最新のIDにする
-	for i := 595; i < 606; i++ {
+	for i := fromID; i <= toID; i++ {
 		id := strconv.Itoa(i)
 		url := targetURL + id
 

@@ -41,15 +41,36 @@ func getNewEvents() ([]Event, error) {
 		return nil, err
 	}
 
-	events, err := asterism.FetchEvents()
+	var rese map[string]Event
+	ref := client.NewRef("hoge")
+	if err := ref.Get(ctx, &rese); err != nil {
+		return nil, err
+	}
+
+	// 既にアップロード済みのイベントの中で最新のID
+	var updatedNewstId int
+	for _, re := range rese {
+		if updatedNewstId < re.Id {
+			updatedNewstId = re.Id
+		}
+	}
+
+	// 現在のwebページから取得できる最新のID
+	toIDStr, err := asterism.GetNewestID()
 	if err != nil {
 		return nil, err
 	}
 
-	// uploadedEvents
-	var rese map[string]Event
-	ref := client.NewRef("hoge")
-	if err := ref.Get(ctx, &rese); err != nil {
+	toID, err := strconv.Atoi(toIDStr)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("##### GET NEW ID #####")
+	log.Println("# FROM: ", updatedNewstId+1)
+	log.Println("# TO  : ", toID)
+	events, err := asterism.FetchEvents(updatedNewstId+1, toID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -128,7 +149,7 @@ func main() {
 		}
 		log.Println("ID:", id)
 	} else if f == "fetch" {
-		_, err := asterism.FetchEvents()
+		_, err := asterism.FetchEvents(0, 1000)
 		if err != nil {
 			log.Fatal(err)
 		}

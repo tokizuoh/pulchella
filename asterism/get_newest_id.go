@@ -69,5 +69,8 @@ func GetNewestID() (string, error) {
 		return "", fmt.Errorf("Not found href.")
 	}
 
-	return needURL, nil
+	// article.html?id=606 -> [article.html?id, 606]
+	arr := strings.Split(needURL, "=")
+
+	return arr[1], nil
 }
