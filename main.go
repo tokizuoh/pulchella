@@ -4,13 +4,18 @@ import (
 	"asterism"
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	firebase "firebase.google.com/go"
 	"github.com/joho/godotenv"
 	"google.golang.org/api/option"
+
+	"github.com/dghubble/go-twitter/twitter"
+	"github.com/dghubble/oauth1"
 )
 
 type Event struct {
@@ -19,6 +24,13 @@ type Event struct {
 	Start     string `json:"start"`
 	End       string `json:"end"`
 	IsCapsule bool   `json:"isCapsule"`
+}
+
+type TwitterConfig struct {
+	ConsumerKey      string
+	ConsumerSecret   string
+	UserAccessToken  string
+	UserAccessSecret string
 }
 
 func getNewEvents() ([]Event, error) {
@@ -138,6 +150,59 @@ func updateEvents(events []Event) error {
 	return nil
 }
 
+func getOngoingEvent() ([]Event, error) {
+	if err := godotenv.Load(); err != nil {
+		return nil, err
+	}
+
+	databaseURL := os.Getenv("DATABASE_URL")
+
+	opt := option.WithCredentialsFile("key.json")
+	config := &firebase.Config{DatabaseURL: databaseURL}
+	app, err := firebase.NewApp(context.Background(), config, opt)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	client, err := app.Database(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var rese map[string]Event
+	ref := client.NewRef("hoge")
+	if err := ref.Get(ctx, &rese); err != nil {
+		return nil, err
+	}
+
+	var onGoingEvent []Event
+	for _, re := range rese {
+		log.Println("CONVERT: ", re.Id)
+		layout := "2006-01-02 15:04:05 +0000 UTC"
+		st, err := time.Parse(layout, re.Start)
+		if err != nil {
+			return nil, err
+		}
+
+		et, err := time.Parse(layout, re.End)
+		if err != nil {
+			return nil, err
+		}
+
+		now := time.Now()
+
+		isOngoingEvent := et.After(now) && now.After(st)
+		if !isOngoingEvent {
+			continue
+		}
+
+		onGoingEvent = append(onGoingEvent, re)
+	}
+
+	return onGoingEvent, nil
+}
+
 func main() {
 	flag.Parse()
 
@@ -162,6 +227,48 @@ func main() {
 		if err := updateEvents(newEvents); err != nil {
 			log.Fatal(err)
 		}
+	} else if f == "tw" {
+		// 現在開催中のイベントを抽出する
+		event, err := getOngoingEvent()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// 以下ツイート
+		if err := godotenv.Load(); err != nil {
+			log.Fatal("Error loading .env file")
+		}
+
+		consumerKey := os.Getenv("TWITTER_CONSUMER_KEY")
+		consumerSecret := os.Getenv("TWITTER_CONSUMER_SECRET")
+		userAccessToken := os.Getenv("TWITTER_USER_ACCESS_TOKEN")
+		userAccessSecret := os.Getenv("TWITTER_USER_ACCESS_SECRET")
+
+		config := &TwitterConfig{
+			ConsumerKey:      consumerKey,
+			ConsumerSecret:   consumerSecret,
+			UserAccessToken:  userAccessToken,
+			UserAccessSecret: userAccessSecret,
+		}
+
+		oauthConfig := oauth1.NewConfig(config.ConsumerKey, config.ConsumerSecret)
+		token := oauth1.NewToken(config.UserAccessToken, config.UserAccessSecret)
+		httpClient := oauthConfig.Client(oauth1.NoContext, token)
+		twitterClient := twitter.NewClient(httpClient)
+
+		var msg string
+		for _, e := range event {
+			msg += fmt.Sprintf("開催中イベント: %v \n 開催期間：%v-%v", e.Title, e.Start, e.End)
+			break
+		}
+
+		_, resp, err := twitterClient.Statuses.Update(msg, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println(resp.StatusCode)
+
 	} else {
 		// NOP
 	}
