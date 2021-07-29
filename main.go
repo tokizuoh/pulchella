@@ -2,8 +2,10 @@ package main
 
 import (
 	"asterism"
+	"bufio"
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"serenade"
@@ -218,6 +220,63 @@ func main() {
 		if err := updateEvents(newEvents); err != nil {
 			log.Fatal(err)
 		}
+	} else if f == "cu" {
+		// custom update
+		fmt.Println("### Custom Update ####")
+		scanner := bufio.NewScanner(os.Stdin)
+
+		// Title
+		fmt.Print("Title: ")
+		scanner.Scan()
+		title := scanner.Text()
+
+		// Start
+		fmt.Print("Start(yyyy-mm-dd hh:mm:ss): ")
+		scanner.Scan()
+		start := scanner.Text()
+		st, err := time.Parse("2006-01-02 15:04:05", start)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// End
+		fmt.Print("End(yyyy-mm-dd hh:mm:ss): ")
+		scanner.Scan()
+		end := scanner.Text()
+		et, err := time.Parse("2006-01-02 15:04:05", end)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// IsCapsule
+		fmt.Print("IsCapsule(y/n): ")
+		scanner.Scan()
+		isCapsule := scanner.Text()
+
+		// ID
+		now := time.Now()
+		nt := now.Format("20060102150405")
+
+		id, err := strconv.Atoi(nt)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		event := Event{
+			Id:        id,
+			Title:     title,
+			Start:     st.String(),
+			End:       et.String(),
+			IsCapsule: isCapsule == "y",
+		}
+
+		var events []Event
+		events = append(events, event)
+
+		if err := updateEvents(events); err != nil {
+			log.Fatal(err)
+		}
+
 	} else if f == "tw" {
 		// 現在開催中のイベントを抽出する
 		events, err := getOngoingEvent()
