@@ -4,18 +4,16 @@ import (
 	"asterism"
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"os"
+	"serenade"
 	"strconv"
 	"time"
+	"topaz"
 
 	firebase "firebase.google.com/go"
 	"github.com/joho/godotenv"
 	"google.golang.org/api/option"
-
-	"github.com/dghubble/go-twitter/twitter"
-	"github.com/dghubble/oauth1"
 )
 
 type Event struct {
@@ -24,13 +22,6 @@ type Event struct {
 	Start     string `json:"start"`
 	End       string `json:"end"`
 	IsCapsule bool   `json:"isCapsule"`
-}
-
-type TwitterConfig struct {
-	ConsumerKey      string
-	ConsumerSecret   string
-	UserAccessToken  string
-	UserAccessSecret string
 }
 
 func getNewEvents() ([]Event, error) {
@@ -229,45 +220,40 @@ func main() {
 		}
 	} else if f == "tw" {
 		// 現在開催中のイベントを抽出する
-		event, err := getOngoingEvent()
+		events, err := getOngoingEvent()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// 以下ツイート
-		if err := godotenv.Load(); err != nil {
-			log.Fatal("Error loading .env file")
+		var sEvents []serenade.Event
+		for _, e := range events {
+			sEvent := &serenade.Event{
+				Id:        e.Id,
+				Title:     e.Title,
+				Start:     e.Start,
+				End:       e.End,
+				IsCapsule: e.IsCapsule,
+			}
+			sEvents = append(sEvents, *sEvent)
 		}
 
-		consumerKey := os.Getenv("TWITTER_CONSUMER_KEY")
-		consumerSecret := os.Getenv("TWITTER_CONSUMER_SECRET")
-		userAccessToken := os.Getenv("TWITTER_USER_ACCESS_TOKEN")
-		userAccessSecret := os.Getenv("TWITTER_USER_ACCESS_SECRET")
-
-		config := &TwitterConfig{
-			ConsumerKey:      consumerKey,
-			ConsumerSecret:   consumerSecret,
-			UserAccessToken:  userAccessToken,
-			UserAccessSecret: userAccessSecret,
-		}
-
-		oauthConfig := oauth1.NewConfig(config.ConsumerKey, config.ConsumerSecret)
-		token := oauth1.NewToken(config.UserAccessToken, config.UserAccessSecret)
-		httpClient := oauthConfig.Client(oauth1.NoContext, token)
-		twitterClient := twitter.NewClient(httpClient)
-
-		var msg string
-		for _, e := range event {
-			msg += fmt.Sprintf("開催中イベント: %v \n 開催期間：%v-%v", e.Title, e.Start, e.End)
-			break
-		}
-
-		_, resp, err := twitterClient.Statuses.Update(msg, nil)
+		msg, err := serenade.Generate(serenade.CapsuleType, sEvents)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		log.Println(resp.StatusCode)
+		if err := topaz.Tweet(msg); err != nil {
+			log.Fatal(err)
+		}
+
+		msg, err = serenade.Generate(serenade.EventType, sEvents)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err := topaz.Tweet(msg); err != nil {
+			log.Fatal(err)
+		}
 
 	} else {
 		// NOP

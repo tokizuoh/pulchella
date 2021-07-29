@@ -4,6 +4,10 @@ go 1.16
 
 replace asterism => ./asterism
 
+replace topaz => ./topaz
+
+replace serenade => ./serenade
+
 require (
 	asterism v0.0.0-00010101000000-000000000000 // indirect
 	cloud.google.com/go v0.88.0 // indirect
@@ -21,4 +25,6 @@ require (
 	golang.org/x/net v0.0.0-20210716203947-853a461950ff // indirect
 	google.golang.org/api v0.51.0 // indirect
 	google.golang.org/genproto v0.0.0-20210722135532-667f2b7c528f // indirect
+	serenade v0.0.0-00010101000000-000000000000 // indirect
+	topaz v0.0.0-00010101000000-000000000000 // indirect
 )
